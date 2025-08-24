@@ -1,1 +1,1 @@
-# build123d-cad-template
+# Chicago-Steno-Thumb-Key-CAD

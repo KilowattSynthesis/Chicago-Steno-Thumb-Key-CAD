@@ -5,12 +5,19 @@ import build123d as bd
 from build123d_ease import show
 from loguru import logger
 
+# TODO: Round/curve the top.
+
 
 @dataclass
 class Spec:
     """Specification for thumb_key."""
 
-    orig_simplified_key_top_z: float = 2.3 + 1.2
+    lip_width: float = 2.0
+    lip_height: float = 1.0
+
+    corner_z_fillet: float = 3
+
+    orig_simplified_key_top_z: float = 2.5 + 1.2
     orig_simplified_key_bottom_z: float = 1.0 + 1.2
 
     # Key bounding box and forced center, as absolute PCB coordinates.
@@ -93,6 +100,15 @@ def draw_new_key_outline(spec: Spec) -> bd.Polygon:
     return outline
 
 
+def fillet_vertical_walls(part: bd.Part, radius: float) -> bd.Part:
+    """Apply fillet to vertical walls of the part."""
+    return part.fillet(
+        radius=radius,
+        edge_list=part.edges().filter_by(bd.Axis.Z),
+    )
+    return part
+
+
 def make_thumb_key(spec: Spec) -> bd.Part | bd.Compound:
     """Create a CAD model of thumb_key."""
     p = bd.Part(None)
@@ -111,12 +127,27 @@ def make_thumb_key(spec: Spec) -> bd.Part | bd.Compound:
     )
 
     # Round the key_top edges.
-    key_top = key_top.fillet(
-        radius=3,
-        edge_list=key_top.edges().filter_by(bd.Axis.Z),
+    key_top = fillet_vertical_walls(key_top, radius=spec.corner_z_fillet)
+
+    # Create the lip.
+    new_key_lip_outline = bd.offset(new_key_outline, amount=-spec.lip_width)
+    assert isinstance(new_key_lip_outline, bd.Face | bd.Sketch)
+    key_lip = (
+        fillet_vertical_walls(
+            bd.extrude(new_key_outline, amount=spec.lip_height),
+            radius=spec.corner_z_fillet,
+        )
+        - fillet_vertical_walls(
+            bd.extrude(new_key_lip_outline, amount=spec.lip_height),
+            radius=spec.corner_z_fillet,
+        )
+    ).translate(
+        (0, 0, spec.orig_simplified_key_bottom_z - spec.lip_height),
     )
 
-    p += key_top
+    key_top_and_lip = bd.Part(None) + key_lip + key_top
+
+    p += key_top_and_lip
 
     return p
 

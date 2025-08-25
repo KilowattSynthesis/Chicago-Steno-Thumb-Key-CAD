@@ -107,7 +107,7 @@ def fillet_vertical_walls(part: bd.Part, radius: float) -> bd.Part:
     )
 
 
-def make_thumb_key(spec: Spec) -> bd.Part | bd.Compound:
+def make_thumb_key_lh(spec: Spec) -> bd.Part | bd.Compound:
     """Create a CAD model of thumb_key."""
     p = bd.Part(None)
 
@@ -160,10 +160,40 @@ def make_thumb_key(spec: Spec) -> bd.Part | bd.Compound:
     return p
 
 
+def make_mirror_thumb_key_rh(spec: Spec) -> bd.Part | bd.Compound:
+    """Create a mirrored CAD model of thumb_key."""
+    main_part = make_thumb_key_lh(spec)
+
+    mirror_part = main_part.mirror(bd.Plane.YZ)
+
+    return mirror_part
+
+
+def preview(spec: Spec) -> bd.Part | bd.Compound:
+    """Create a preview CAD model of thumb_key."""
+    p = bd.Part(None)
+
+    p += (
+        make_thumb_key_lh(spec)
+        .rotate(axis=bd.Axis.Z, angle=180)
+        .translate((-15, 0, 0))
+    )
+
+    p += (
+        make_mirror_thumb_key_rh(spec)
+        .rotate(axis=bd.Axis.Z, angle=180)
+        .translate((15, 0, 0))
+    )
+
+    return p
+
+
 if __name__ == "__main__":
     logger.info("Starting.")
     parts = {
-        "thumb_key": show(make_thumb_key(Spec())),
+        "preview": show(preview(Spec())),
+        "thumb_key_lh": (make_thumb_key_lh(Spec())),
+        "thumb_key_rh": (make_mirror_thumb_key_rh(Spec())),
     }
 
     logger.info("Showing CAD model(s)")

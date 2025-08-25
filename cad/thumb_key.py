@@ -5,8 +5,6 @@ import build123d as bd
 from build123d_ease import show
 from loguru import logger
 
-# TODO: Round/curve the top.
-
 
 @dataclass
 class Spec:
@@ -15,7 +13,8 @@ class Spec:
     lip_width: float = 2.0
     lip_height: float = 1.0
 
-    corner_z_fillet: float = 3
+    corner_z_fillet_radius: float = 3
+    top_face_fillet_radius: float = 1.9
 
     orig_simplified_key_top_z: float = 2.5 + 1.2
     orig_simplified_key_bottom_z: float = 1.0 + 1.2
@@ -106,7 +105,6 @@ def fillet_vertical_walls(part: bd.Part, radius: float) -> bd.Part:
         radius=radius,
         edge_list=part.edges().filter_by(bd.Axis.Z),
     )
-    return part
 
 
 def make_thumb_key(spec: Spec) -> bd.Part | bd.Compound:
@@ -127,7 +125,9 @@ def make_thumb_key(spec: Spec) -> bd.Part | bd.Compound:
     )
 
     # Round the key_top edges.
-    key_top = fillet_vertical_walls(key_top, radius=spec.corner_z_fillet)
+    key_top = fillet_vertical_walls(
+        key_top, radius=spec.corner_z_fillet_radius
+    )
 
     # Create the lip.
     new_key_lip_outline = bd.offset(new_key_outline, amount=-spec.lip_width)
@@ -135,17 +135,25 @@ def make_thumb_key(spec: Spec) -> bd.Part | bd.Compound:
     key_lip = (
         fillet_vertical_walls(
             bd.extrude(new_key_outline, amount=spec.lip_height),
-            radius=spec.corner_z_fillet,
+            radius=spec.corner_z_fillet_radius,
         )
         - fillet_vertical_walls(
             bd.extrude(new_key_lip_outline, amount=spec.lip_height),
-            radius=spec.corner_z_fillet,
+            radius=spec.corner_z_fillet_radius,
         )
     ).translate(
         (0, 0, spec.orig_simplified_key_bottom_z - spec.lip_height),
     )
 
     key_top_and_lip = bd.Part(None) + key_lip + key_top
+
+    # Round the top of the lip.
+    key_top_and_lip = key_top_and_lip.fillet(
+        radius=spec.top_face_fillet_radius,
+        edge_list=(  # All edges on the top face.
+            key_top_and_lip.faces().sort_by(bd.Axis.Z)[-1].edges()
+        ),
+    )
 
     p += key_top_and_lip
 

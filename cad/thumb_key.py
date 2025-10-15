@@ -177,18 +177,8 @@ def make_mirror_thumb_key_lh(spec: Spec) -> bd.Part | bd.Compound:
 def preview(spec: Spec) -> bd.Part | bd.Compound:
     """Create a preview CAD model of thumb_key."""
     p = bd.Part(None)
-
-    p += (
-        make_thumb_key_rh(spec)
-        .rotate(axis=bd.Axis.Z, angle=180)
-        .translate((-15, 0, 0))
-    )
-
-    p += (
-        make_mirror_thumb_key_lh(spec)
-        .rotate(axis=bd.Axis.Z, angle=180)
-        .translate((15, 0, 0))
-    )
+    p += make_thumb_key_rh(spec).translate((15, 0, 0))
+    p += make_mirror_thumb_key_lh(spec).translate((-15, 0, 0))
 
     return p
 
@@ -210,7 +200,7 @@ if __name__ == "__main__":
     logger.info("Starting renders.")
     parts = {
         "thumb_key_rh": show(make_thumb_key_rh(Spec())),
-        "preview": (preview(Spec())),
+        "preview": show(preview(Spec())),
         "thumb_key_lh": (make_mirror_thumb_key_lh(Spec())),
         "boring_normal_key": boring_normal_key(),
     }

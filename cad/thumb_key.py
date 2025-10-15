@@ -24,6 +24,15 @@ class Spec:
     # Rotation on the right-hand key, compared to all other keys.
     key_rotation_angle_deg: float = -60
 
+    # Chicago Steno style concave parameters
+    # The dish is ellipsoidal with vertical ridges
+    dish_depth: float = 0.9  # How deep the dish depression is
+    dish_width_radius: float = 20.0  # X-axis radius (wider)
+    dish_length_radius: float = (
+        12.0  # Y-axis radius (narrower for vertical orientation)
+    )
+    dish_rotate_angle_deg: float = -60
+
     input_simplified_key_path: Path = (
         Path(__file__).parent / "simplified" / "simplified_key.step"
     )
@@ -91,6 +100,42 @@ def fillet_vertical_walls(
     )
 
 
+def create_chicago_steno_dish(spec: Spec, key_outline: bd.Polygon) -> bd.Part:
+    """Create a Chicago Steno style dish with vertical ridges.
+
+    Creates an ellipsoidal dish depression oriented vertically (longer in Y)
+    with subtle vertical ridges that help guide finger placement.
+    """
+    # Get the center of the key outline
+    bbox = key_outline.bounding_box()
+    center_x = (bbox.min.X + bbox.max.X) / 2
+    center_y = (bbox.min.Y + bbox.max.Y) / 2
+
+    # Create the main ellipsoidal dish
+    # Scale a sphere to create an ellipsoid
+    dish_sphere = bd.Part(None) + bd.Sphere(radius=1.0)
+
+    # Scale to create ellipsoid: wider in X, narrower in Y for vertical feel
+    dish_ellipsoid = bd.scale(
+        dish_sphere,
+        (
+            spec.dish_width_radius,
+            spec.dish_length_radius,
+            spec.dish_depth * 2,  # Z scaling for depth
+        ),
+    )
+
+    # Position the ellipsoid to create the dish
+    dish_center_z = (
+        spec.key_top_thickness - spec.dish_depth + spec.dish_depth * 2
+    )
+    dish_ellipsoid = dish_ellipsoid.translate(
+        (center_x, center_y, dish_center_z)
+    ).rotate(bd.Axis.Z, angle=spec.dish_rotate_angle_deg)
+    assert isinstance(dish_ellipsoid, bd.Part)
+    return dish_ellipsoid
+
+
 def make_thumb_key_rh(spec: Spec) -> bd.Part | bd.Compound:
     """Create a CAD model of thumb_key."""
     p = bd.Part(None)
@@ -102,8 +147,6 @@ def make_thumb_key_rh(spec: Spec) -> bd.Part | bd.Compound:
         amount=spec.key_top_thickness,
         dir=(0, 0, 1),  # Force extruding up.
     )
-
-    # DEBUG: Good breakpoint here.
 
     # Round the key_top edges.
     key_top = fillet_vertical_walls(
@@ -161,6 +204,10 @@ def make_thumb_key_rh(spec: Spec) -> bd.Part | bd.Compound:
             )
         )
     )
+
+    # Apply Chicago Steno style dish to the key top.
+    chicago_dish = create_chicago_steno_dish(spec, new_key_outline)
+    p -= chicago_dish
 
     return p
 

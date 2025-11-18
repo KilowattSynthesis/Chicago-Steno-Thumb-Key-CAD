@@ -34,13 +34,11 @@ class Spec:
     # Goes around clockwise.
     # Key center is (105, 127).
     new_key_outline_coords: tuple[tuple[float, float], ...] = (
-        (5.5, 10.0),  # Concave point on top edge. (110.5, 117)
         (15.0, 10.0),  # Right edge, top.
         (15.0, -8.0),  # Right edge meets bottom edge.
         (-5.0, -8.0),  # Bottom edge, left.
         (-13.3, 6.3),  # Far left point.
-        (0, 16.1),  # Top edge, left side.
-        (5.5, 16.1),  # Far top point, straight above concave.
+        (-8.0, 10.0),  # Top edge, left side.
     )
 
     def __post_init__(self) -> None:
